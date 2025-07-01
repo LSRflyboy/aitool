@@ -26,8 +26,10 @@ export default function FileListPage() {
     if (!selectedUuids.length || loading) return;
     setLoading(true);
     try {
-      for (const id of selectedUuids) {
-        await axios.delete(`/api/files/${id}`);
+      if (selectedUuids.length === 1) {
+        await axios.delete(`/api/files/${selectedUuids[0]}`);
+      } else {
+        await axios.delete(`/api/files/batch`, { data: selectedUuids });
       }
       message.success("删除成功");
       setSelectedKeys([]);

@@ -126,4 +126,35 @@ public class FileController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @DeleteMapping("/batch")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> batchDelete(@RequestBody java.util.List<String> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "ids cannot be empty"));
+        }
+        int success = 0;
+        for (String uuid : uuids) {
+            var opt = recordRepo.findByUuid(uuid);
+            if (opt.isEmpty()) continue;
+            FileRecord rec = opt.get();
+            logRepo.deleteByFileRecord(rec);
+            recordRepo.delete(rec);
+            // delete storage dir
+            if (rec.getStoragePath() != null) {
+                java.nio.file.Path p = java.nio.file.Paths.get(rec.getStoragePath()).getParent();
+                try {
+                    if (java.nio.file.Files.exists(p)) {
+                        java.nio.file.Files.walk(p)
+                                .sorted((a,b)->b.compareTo(a))
+                                .forEach(path -> {
+                                    try { java.nio.file.Files.deleteIfExists(path); } catch (Exception ignored) {}
+                                });
+                    }
+                } catch (Exception ignored) {}
+            }
+            success++;
+        }
+        return ResponseEntity.ok(Map.of("deleted", success));
+    }
 } 
