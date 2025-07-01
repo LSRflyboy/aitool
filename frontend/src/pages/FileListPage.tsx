@@ -23,18 +23,21 @@ export default function FileListPage() {
   const selectedUuids = selectedKeys as string[];
 
   const handleDelete = async () => {
-    if (!selectedUuids.length) return;
+    if (!selectedUuids.length || loading) return;
+    setLoading(true);
     try {
-      await Promise.all(
-        selectedUuids.map((id) => axios.delete(`/api/files/${id}`))
-      );
+      for (const id of selectedUuids) {
+        await axios.delete(`/api/files/${id}`);
+      }
       message.success("删除成功");
       setSelectedKeys([]);
       // refresh list
       const res = await axios.get<FileRec[]>("/api/files");
       setData(res.data);
+      setLoading(false);
     } catch {
       message.error("删除失败");
+      setLoading(false);
     }
   };
 
