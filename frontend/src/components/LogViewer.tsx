@@ -87,7 +87,7 @@ export default function LogViewer({ uuids, height = 600 }: Props) {
 
       const all: LogRow[] = [];
 
-      const size = 5000;
+      const size = 10000;
 
       // 使用新的批量日志接口，一次性查询多个文件
       const first = await axios.get("/api/logs", {
