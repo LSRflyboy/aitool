@@ -64,8 +64,8 @@ public class StorageService {
                 .status(FileStatus.STORED)
                 .createdAt(LocalDateTime.now())
                 .build());
-        log.warn("⚠️ 文件已保存 ({}), 状态: STORED. 须手动触发解析, 自动解析已禁用.", uuid);
-        // parseService.extractAndParseAsync(uuid); - 已禁用，改为手动触发 /api/files/{uuid}/parse
+        log.info("文件已保存 ({}), 开始异步解析", uuid);
+        parseService.extractAndParseAsync(uuid);
         return uuid;
     }
 
@@ -106,8 +106,8 @@ public class StorageService {
                 .status(FileStatus.STORED)
                 .createdAt(LocalDateTime.now())
                 .build());
-        log.warn("⚠️ 文件已保存 ({}), 状态: STORED. 须手动触发解析, 自动解析已禁用.", uuid);
-        // parseService.extractAndParseAsync(uuid); - 已禁用，改为手动触发 /api/files/{uuid}/parse
+        log.info("文件已保存 ({}), 开始异步解析", uuid);
+        parseService.extractAndParseAsync(uuid);
         return uuid;
     }
 
