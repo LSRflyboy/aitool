@@ -26,7 +26,7 @@ public class AndroidLogParser implements LogParser {
     @Override
     public boolean supports(Path filePath) {
         String name = filePath.getFileName().toString().toLowerCase();
-        return (name.endsWith(".log") || name.endsWith(".txt")) && name.contains("app");
+        return name.endsWith(".log") || name.endsWith(".txt");
     }
 
     @Override

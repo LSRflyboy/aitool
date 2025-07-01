@@ -115,15 +115,19 @@ public class ParseService {
                         log.error("Failed to recurse into {}", subDir, e);
                     }
                 } else {
-                    parsers.stream().filter(p -> p.supports(path)).findFirst().ifPresent(parser -> {
+                    for (LogParser parser : parsers) {
+                        if (!parser.supports(path)) continue;
                         try {
                             List<LogEntry> entries = parser.parse(path);
-                            entries.forEach(e -> e.setFileRecord(record));
-                            logRepo.saveAll(entries);
+                            if (!entries.isEmpty()) {
+                                entries.forEach(e -> e.setFileRecord(record));
+                                logRepo.saveAll(entries);
+                                break; // 已成功解析，停止尝试其他解析器
+                            }
                         } catch (IOException e) {
-                            log.error("parser failed for file {}", path, e);
+                            log.error("parser failed for file {} by {}", path, parser.getClass().getSimpleName(), e);
                         }
-                    });
+                    }
                 }
             } catch (Exception e) {
                 log.error("Error processing file {}", path, e);
