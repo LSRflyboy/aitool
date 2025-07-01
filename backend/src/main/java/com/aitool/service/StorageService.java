@@ -64,8 +64,7 @@ public class StorageService {
                 .status(FileStatus.STORED)
                 .createdAt(LocalDateTime.now())
                 .build());
-        log.info("文件已保存 ({}), 开始异步解析", uuid);
-        parseService.extractAndParseAsync(uuid);
+        log.warn("文件已保存 ({}), 状态 STORED, 需手动点击解析按钮", uuid);
         return uuid;
     }
 
@@ -106,8 +105,7 @@ public class StorageService {
                 .status(FileStatus.STORED)
                 .createdAt(LocalDateTime.now())
                 .build());
-        log.info("文件已保存 ({}), 开始异步解析", uuid);
-        parseService.extractAndParseAsync(uuid);
+        log.warn("文件已保存 ({}), 状态 STORED, 需手动点击解析按钮", uuid);
         return uuid;
     }
 
