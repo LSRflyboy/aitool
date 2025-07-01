@@ -9,5 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface LogEntryRepository extends JpaRepository<LogEntry, Long>, JpaSpecificationExecutor<LogEntry> {
     Page<LogEntry> findByFileRecord(FileRecord file, Pageable pageable);
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying
     long deleteByFileRecord(FileRecord fileRecord);
 } 
