@@ -87,36 +87,32 @@ export default function LogViewer({ uuids, height = 600 }: Props) {
 
       const all: LogRow[] = [];
 
-      // helper: fetch all pages for one file, but并发请求除第一页外的其他页
-      const fetchAllForId = async (id: string) => {
-        const size = 3000; // 大页容量，减少请求次数
+      const size = 5000;
 
-        // 先取第一页，拿到总页数
-        const firstRes = await axios.get(`/api/files/${id}/logs`, {
-          params: { ...baseParams, page: 0, size },
-        });
-        const { data: firstData, pages } = firstRes.data;
-        all.push(...firstData);
+      // 使用新的批量日志接口，一次性查询多个文件
+      const first = await axios.get("/api/logs", {
+        params: { ...baseParams, uuids: parsedUuids.join(","), page: 0, size },
+      });
+      all.push(...first.data.data);
+      const pages = first.data.pages;
 
-        if (pages > 1) {
-          // 准备剩余页请求并发执行
-          const requests: Promise<any>[] = [];
-          for (let p = 1; p < pages; p++) {
-            requests.push(
-              axios.get(`/api/files/${id}/logs`, {
-                params: { ...baseParams, page: p, size },
-              })
-            );
-          }
-          const results = await Promise.all(requests);
-          results.forEach((res) => {
-            all.push(...res.data.data);
-          });
+      if (pages > 1) {
+        const reqs: Promise<any>[] = [];
+        for (let p = 1; p < pages; p++) {
+          reqs.push(
+            axios.get("/api/logs", {
+              params: {
+                ...baseParams,
+                uuids: parsedUuids.join(","),
+                page: p,
+                size,
+              },
+            })
+          );
         }
-      };
-
-      // 并行处理多个文件
-      await Promise.all(parsedUuids.map((id) => fetchAllForId(id)));
+        const resArr = await Promise.all(reqs);
+        resArr.forEach((r) => all.push(...r.data.data));
+      }
 
       // 按时间排序
       all.sort((a, b) => (a.timestamp > b.timestamp ? 1 : -1));
