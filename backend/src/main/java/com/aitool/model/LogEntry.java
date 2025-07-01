@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
 @Table(name = "log_entry", indexes = {
         @Index(columnList = "timestamp"),
         @Index(columnList = "level"),
-        @Index(columnList = "tag")
+        @Index(columnList = "tag"),
+        @jakarta.persistence.Index(name = "idx_file_record_ts", columnList = "file_record_id,timestamp")
 })
 @Getter
 @Setter
