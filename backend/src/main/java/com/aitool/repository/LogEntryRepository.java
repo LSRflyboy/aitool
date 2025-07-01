@@ -12,4 +12,8 @@ public interface LogEntryRepository extends JpaRepository<LogEntry, Long>, JpaSp
     @org.springframework.transaction.annotation.Transactional
     @org.springframework.data.jpa.repository.Modifying
     long deleteByFileRecord(FileRecord fileRecord);
+
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying
+    void deleteByFileRecord_UuidIn(java.util.List<String> uuids);
 } 

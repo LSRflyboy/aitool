@@ -133,14 +133,15 @@ public class FileController {
         if (uuids == null || uuids.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "ids cannot be empty"));
         }
-        int success = 0;
-        for (String uuid : uuids) {
-            var opt = recordRepo.findByUuid(uuid);
-            if (opt.isEmpty()) continue;
-            FileRecord rec = opt.get();
-            logRepo.deleteByFileRecord(rec);
-            recordRepo.delete(rec);
-            // delete storage dir
+        // 先查询对应记录，方便删除磁盘目录
+        java.util.List<FileRecord> recs = recordRepo.findByUuidIn(uuids);
+
+        // 批量删除日志 & 文件记录
+        logRepo.deleteByFileRecord_UuidIn(uuids);
+        recordRepo.deleteByUuidIn(uuids);
+
+        // 删除磁盘目录（不在同一事务，不影响数据库锁）
+        recs.forEach(rec -> {
             if (rec.getStoragePath() != null) {
                 java.nio.file.Path p = java.nio.file.Paths.get(rec.getStoragePath()).getParent();
                 try {
@@ -153,8 +154,8 @@ public class FileController {
                     }
                 } catch (Exception ignored) {}
             }
-            success++;
-        }
-        return ResponseEntity.ok(Map.of("deleted", success));
+        });
+
+        return ResponseEntity.ok(Map.of("deleted", recs.size()));
     }
 } 
