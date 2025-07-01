@@ -13,6 +13,7 @@ import {
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Dayjs } from "dayjs";
+import React from "react";
 
 interface Props {
   uuids: string[];
@@ -32,8 +33,14 @@ export default function LogViewer({ uuids, height = 600 }: Props) {
   const [level, setLevel] = useState<string>();
   const [tag, setTag] = useState<string>();
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const PAGE_SIZE = 1000;
+  const [pageMap, setPageMap] = useState<Record<string, number>>({});
+  const [totalMap, setTotalMap] = useState<Record<string, number>>({});
+  const [hasMore, setHasMore] = useState(false);
 
-  const fetchData = async () => {
+  const tableBodyRef = React.useRef<HTMLDivElement | null>(null);
+
+  const fetchInitial = async () => {
     if (!uuids.length) return;
     setLoading(true);
     try {
@@ -85,42 +92,33 @@ export default function LogViewer({ uuids, height = 600 }: Props) {
         baseParams.to = range[1].toISOString();
       }
 
-      const all: LogRow[] = [];
+      const combined: LogRow[] = [];
+      const newPageMap: Record<string, number> = {};
+      const newTotalMap: Record<string, number> = {};
 
-      const size = 10000;
+      // 拉第一页
+      await Promise.all(
+        parsedUuids.map(async (id) => {
+          const res = await axios.get(`/api/files/${id}/logs`, {
+            params: { ...baseParams, page: 0, size: PAGE_SIZE },
+          });
+          combined.push(...res.data.data);
+          newPageMap[id] = 0;
+          newTotalMap[id] = res.data.pages;
+        })
+      );
 
-      // 使用新的批量日志接口，一次性查询多个文件
-      const first = await axios.get("/api/logs", {
-        params: { ...baseParams, uuids: parsedUuids.join(","), page: 0, size },
-      });
-      all.push(...first.data.data);
-      const pages = first.data.pages;
-
-      if (pages > 1) {
-        const reqs: Promise<any>[] = [];
-        for (let p = 1; p < pages; p++) {
-          reqs.push(
-            axios.get("/api/logs", {
-              params: {
-                ...baseParams,
-                uuids: parsedUuids.join(","),
-                page: p,
-                size,
-              },
-            })
-          );
-        }
-        const resArr = await Promise.all(reqs);
-        resArr.forEach((r) => all.push(...r.data.data));
-      }
+      setPageMap(newPageMap);
+      setTotalMap(newTotalMap);
+      setHasMore(Object.keys(newTotalMap).some((id) => newTotalMap[id] > 1));
 
       // 按时间排序
-      all.sort((a, b) => (a.timestamp > b.timestamp ? 1 : -1));
-      setData(all);
-      // 短暂提示解析/加载了多少条
-      if (all.length) {
+      combined.sort((a, b) => (a.timestamp > b.timestamp ? 1 : -1));
+      setData(combined);
+
+      if (combined.length) {
         message.success({
-          content: `已加载 ${all.length} 条日志`,
+          content: `已加载 ${combined.length} 条日志`,
           duration: 2,
         });
       }
@@ -133,9 +131,71 @@ export default function LogViewer({ uuids, height = 600 }: Props) {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uuids]); // 不把 level/tag/range 放进依赖，避免频繁触发卡顿
+
+  // 加载更多
+  const loadMore = async () => {
+    if (!hasMore || loading) return;
+    setLoading(true);
+    try {
+      const baseParams: any = {};
+      if (level) baseParams.level = level;
+      if (tag) baseParams.tag = tag;
+      if (range) {
+        baseParams.from = range[0].toISOString();
+        baseParams.to = range[1].toISOString();
+      }
+
+      const more: LogRow[] = [];
+      const newPageMap = { ...pageMap };
+      const newHasMoreFlags: boolean[] = [];
+
+      await Promise.all(
+        Object.keys(pageMap).map(async (id) => {
+          const nextPage = pageMap[id] + 1;
+          if (nextPage >= totalMap[id]) return;
+          const res = await axios.get(`/api/files/${id}/logs`, {
+            params: { ...baseParams, page: nextPage, size: PAGE_SIZE },
+          });
+          more.push(...res.data.data);
+          newPageMap[id] = nextPage;
+          newHasMoreFlags.push(nextPage + 1 < totalMap[id]);
+        })
+      );
+
+      if (more.length) {
+        const merged = [...data, ...more].sort((a, b) =>
+          a.timestamp > b.timestamp ? 1 : -1
+        );
+        setData(merged);
+      }
+
+      setPageMap(newPageMap);
+      setHasMore(newHasMoreFlags.some(Boolean));
+    } catch (e) {
+      console.error("加载更多日志失败", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 监听滚动
+  useEffect(() => {
+    const div = document.querySelector(".ant-table-body") as HTMLDivElement;
+    if (!div) return;
+    tableBodyRef.current = div;
+    const handler = () => {
+      if (!hasMore) return;
+      const { scrollTop, scrollHeight, clientHeight } = div;
+      if (scrollHeight - scrollTop - clientHeight < 300) {
+        loadMore();
+      }
+    };
+    div.addEventListener("scroll", handler);
+    return () => div.removeEventListener("scroll", handler);
+  }, [hasMore, pageMap, totalMap, level, tag, range]);
 
   // 统一日志级别选项，后端处理时自动匹配不同格式
   const levelOptions = [
@@ -198,7 +258,7 @@ export default function LogViewer({ uuids, height = 600 }: Props) {
           value={range as any}
           onChange={(vals) => setRange(vals as any)}
         />
-        <Button type="primary" onClick={fetchData} disabled={!uuids.length}>
+        <Button type="primary" onClick={fetchInitial} disabled={!uuids.length}>
           查询
         </Button>
       </Space>
