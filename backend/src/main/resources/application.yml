@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: ai-tool-backend
+  datasource:
+    url: jdbc:sqlite:${user.home}/aitool-storage/aitool.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+server:
+  port: 8080
+  tomcat:
+    max-http-form-post-size: 500MB
+
+aitool:
+  storage:
+    root-dir: ${user.home}/aitool-storage
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.aitool: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+    org.apache.tomcat.util.http.fileupload: DEBUG

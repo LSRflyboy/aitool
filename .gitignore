@@ -1,0 +1,21 @@
+# Java / Maven
+backend/target/
+*.class
+
+# Node
+frontend/node_modules/
+
+# IDE / tooling
+.idea/
+.vscode/
+
+# Logs & archives
+*.log
+*.zip
+*.gz
+*.jar
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db 

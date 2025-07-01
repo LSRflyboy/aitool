@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Maven wrapper script for consistent builds
+
+# Set Java version to 17
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+
+# Add JVM args to fix TypeTag UNKNOWN issue
+export MAVEN_OPTS="$MAVEN_OPTS --add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED"
+
+# Run Maven with all arguments passed to this script
+mvn "$@" 

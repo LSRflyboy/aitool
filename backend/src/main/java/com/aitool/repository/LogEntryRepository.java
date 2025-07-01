@@ -1,0 +1,13 @@
+package com.aitool.repository;
+
+import com.aitool.model.FileRecord;
+import com.aitool.model.LogEntry;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface LogEntryRepository extends JpaRepository<LogEntry, Long>, JpaSpecificationExecutor<LogEntry> {
+    Page<LogEntry> findByFileRecord(FileRecord file, Pageable pageable);
+    long deleteByFileRecord(FileRecord fileRecord);
+} 
